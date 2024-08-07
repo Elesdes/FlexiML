@@ -12,16 +12,15 @@ name = "fleximl"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-pyo3 = { git = "https://github.com/PyO3/pyo3", features = ["extension-module"] }
-ndarray = { git = "https://github.com/rust-ndarray/ndarray" }
-rand = { git = "https://github.com/rust-random/rand" }
+pyo3 = { version = "0.19.2", features = ["extension-module", "auto-initialize"] }
+ndarray = "0.15.6"
+rand = "0.8.5"
+
+[build-dependencies]
+pyo3-build-config = "0.19.2"
 
 [dev-dependencies]
-criterion = "0.4"
-
-[features]
-default = ["python"]
-python = ["pyo3/extension-module"]
+approx = "0.5.1"
 
 [profile.release]
 opt-level = 3

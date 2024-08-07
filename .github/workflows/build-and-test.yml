@@ -8,18 +8,35 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build_and_test:
-    name: FlexiML - latest
+  rust_tests:
+    name: FlexiML - Rust Tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: rustup update stable && rustup default stable
-      - run: cargo build --verbose
-      - run: cargo test --verbose
+      - name: Install Rust
+        run: rustup update stable && rustup default stable
+      - name: Run Rust Tests
+        run: cargo test --verbose
+
+  python_tests:
+    name: FlexiML - Python Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.11
+      - name: Install requirements
+        run: pip install -r requirements.txt
+      - name: Build and Install FlexiML
+        run: maturin develop
+      - name: Run Python Tests
+        run: pytest pytests
 
   notify_ci_status:
     name: Notify CI Status
-    needs: build_and_test
+    needs: [rust_tests, python_tests]
     runs-on: ubuntu-latest
     if: always()
     steps:
