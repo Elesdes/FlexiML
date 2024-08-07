@@ -2,7 +2,30 @@
 name = "fleximl"
 version = "0.1.0"
 edition = "2021"
+authors = ["Elesdes"]
+description = "A high-performance machine learning library implemented in Rust with Python bindings"
+license = "MIT"
+repository = "https://github.com/Elesdes/FlexiML"
+
+[lib]
+name = "fleximl"
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-time = "0.1.12"
-regex = { git = "https://github.com/rust-lang/regex.git" }
+pyo3 = { git = "https://github.com/PyO3/pyo3", features = ["extension-module"] }
+ndarray = { git = "https://github.com/rust-ndarray/ndarray" }
+rand = { git = "https://github.com/rust-random/rand" }
+
+[dev-dependencies]
+criterion = "0.4"
+
+[features]
+default = ["python"]
+python = ["pyo3/extension-module"]
+
+[profile.release]
+opt-level = 3
+lto = true
+
+[package.metadata.maturin]
+name = "fleximl"
