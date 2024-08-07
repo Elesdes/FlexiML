@@ -18,6 +18,7 @@ jobs:
       - run: cargo test --verbose
 
   notify_ci_status:
+    name: Notify CI Status
     needs: build_and_test
     runs-on: ubuntu-latest
     if: always()
