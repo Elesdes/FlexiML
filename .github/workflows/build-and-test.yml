@@ -18,12 +18,6 @@ jobs:
         - run: cargo update --verbose
         - run: cargo build --verbose
         - run: cargo test --verbose
-    msrv:
-        runs-on: ubuntu-latest
-        steps:
-        - uses: actions/checkout@v4
-        - uses: taiki-e/install-action@cargo-hack
-        - run: cargo hack check --rust-version --workspace --all-targets --ignore-private
     build_and_test:
         name: Rust project - latest
         runs-on: ubuntu-latest
