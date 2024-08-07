@@ -27,10 +27,12 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: 3.11
-      - name: Install requirements
-        run: pip install -r requirements.txt
+      - name: Install initial requirements
+        run: pip install maturin>=1.4,<=2.0 pytest==8.3.2
       - name: Build and Install FlexiML
-        run: maturin develop
+        run: |
+          maturin build
+          pip install target/wheels/*.whl
       - name: Run Python Tests
         run: pytest pytests
 
@@ -40,24 +42,37 @@ jobs:
     runs-on: ubuntu-latest
     if: always()
     steps:
+      - name: Check job status
+        id: check
+        run: |
+          if [ "${{ needs.rust_tests.result }}" == "success" ] && [ "${{ needs.python_tests.result }}" == "success" ]; then
+            echo "status=success" >> $GITHUB_OUTPUT
+          elif [ "${{ needs.rust_tests.result }}" == "cancelled" ] || [ "${{ needs.python_tests.result }}" == "cancelled" ]; then
+            echo "status=cancelled" >> $GITHUB_OUTPUT
+          else
+            echo "status=failure" >> $GITHUB_OUTPUT
+          fi
+
       - name: Test Success
         uses: rjstone/discord-webhook-notify@v1
-        if: success()
+        if: steps.check.outputs.status == 'success'
         with:
           severity: info
-          details: Test Succeeded!
+          details: All tests succeeded!
           webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
+
       - name: Test Failure
         uses: rjstone/discord-webhook-notify@v1
-        if: failure()
+        if: steps.check.outputs.status == 'failure'
         with:
           severity: error
-          details: Test Failed!
+          details: One or more tests failed!
           webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
+
       - name: Test Cancelled
         uses: rjstone/discord-webhook-notify@v1
-        if: cancelled()
+        if: steps.check.outputs.status == 'cancelled'
         with:
           severity: warn
-          details: Test Cancelled!
+          details: Tests were cancelled!
           webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
