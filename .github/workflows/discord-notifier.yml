@@ -1,8 +1,10 @@
-name: FlexiML Notification
+name: FlexiML_py Notification
 
 on:
   workflow_run:
-    workflows: ["FlexiML Build & Test"]
+    branches:
+        - master
+    workflows: ["Test", "Publish"]
     types:
       - completed
 
