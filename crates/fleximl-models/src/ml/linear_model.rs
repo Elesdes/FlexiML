@@ -1,11 +1,7 @@
-use pyo3::prelude::*;
 use rand::Rng;
 
-#[pyclass]
 pub struct LinearModel {
-    #[pyo3(get, set)]
     pub slope: f64,
-    #[pyo3(get, set)]
     pub intercept: f64,
 }
 
@@ -21,7 +17,6 @@ pub trait LinearModelMethods {
     fn mse(&self, x: &[f64], y: &[f64]) -> Result<f64, String>;
 }
 
-// Rust implementation
 impl LinearModelMethods for LinearModel {
     fn predict(&self, x: &[f64]) -> Vec<f64> {
         x.iter()
@@ -57,7 +52,7 @@ impl LinearModelMethods for LinearModel {
             return Err("Input and output vectors must have the same length".to_string());
         }
 
-        let predictions = LinearModelMethods::predict(self, x);
+        let predictions = self.predict(x);
         Ok(predictions
             .iter()
             .zip(y.iter())
@@ -67,10 +62,7 @@ impl LinearModelMethods for LinearModel {
     }
 }
 
-// Python implementation
-#[pymethods]
 impl LinearModel {
-    #[new]
     pub fn new() -> Self {
         let mut rng = rand::thread_rng();
         LinearModel {
@@ -79,34 +71,6 @@ impl LinearModel {
         }
     }
 
-    pub fn predict(&self, x: Vec<f64>) -> PyResult<Vec<f64>> {
-        Ok(LinearModelMethods::predict(self, &x))
-    }
-
-    pub fn train(
-        &mut self,
-        x: Vec<f64>,
-        y: Vec<f64>,
-        learning_rate: Option<f64>,
-        epochs: Option<usize>,
-    ) -> PyResult<()> {
-        LinearModelMethods::train(
-            self,
-            &x,
-            &y,
-            learning_rate.unwrap_or(0.01),
-            epochs.unwrap_or(1000),
-        )
-        .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e))
-    }
-
-    pub fn mse(&self, x: Vec<f64>, y: Vec<f64>) -> PyResult<f64> {
-        LinearModelMethods::mse(self, &x, &y)
-            .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e))
-    }
-}
-
-impl LinearModel {
     pub fn with_parameters(slope: f64, intercept: f64) -> Self {
         LinearModel { slope, intercept }
     }

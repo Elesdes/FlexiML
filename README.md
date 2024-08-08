@@ -1,6 +1,6 @@
 # FlexiML
 
-FlexiML is a Rust-based module designed for a wide range of machine learning tasks, and is intended to be used in Python projects. This module serves as a continuation and improvement of a previous C++ version, offering enhanced performance and safety inherent to Rust.
+FlexiML is a Rust-based module designed for a wide range of machine learning tasks. This module serves as a continuation and improvement of a previous C++ version, offering enhanced performance and safety inherent to Rust.
 
 ## Features
 
@@ -11,7 +11,6 @@ FlexiML is a Rust-based module designed for a wide range of machine learning tas
 ## Requirements
 
 - Rust (latest stable version recommended)
-- Python 3.11 or higher
 
 ## Installation
 

@@ -1,5 +1,5 @@
 use approx::assert_relative_eq;
-use fleximl::models::{LinearModel, LinearModelMethods};
+use fleximl_models::ml::{LinearModel, LinearModelMethods};
 
 #[test]
 fn test_new() {

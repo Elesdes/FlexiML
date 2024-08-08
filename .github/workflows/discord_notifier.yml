@@ -1,0 +1,47 @@
+name: FlexiML Notification
+
+on:
+  workflow_run:
+    workflows: ["FlexiML Build & Test"]
+    types:
+      - completed
+
+jobs:
+  notify_ci_status:
+    name: Notify CI Status
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check workflow status
+        id: check
+        run: |
+          if [ "${{ github.event.workflow_run.conclusion }}" == "success" ]; then
+            echo "status=success" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event.workflow_run.conclusion }}" == "cancelled" ]; then
+            echo "status=cancelled" >> $GITHUB_OUTPUT
+          else
+            echo "status=failure" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Test Success
+        uses: rjstone/discord-webhook-notify@v1
+        if: steps.check.outputs.status == 'success'
+        with:
+          severity: info
+          details: All tests succeeded!
+          webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
+
+      - name: Test Failure
+        uses: rjstone/discord-webhook-notify@v1
+        if: steps.check.outputs.status == 'failure'
+        with:
+          severity: error
+          details: One or more tests failed!
+          webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
+
+      - name: Test Cancelled
+        uses: rjstone/discord-webhook-notify@v1
+        if: steps.check.outputs.status == 'cancelled'
+        with:
+          severity: warn
+          details: Tests were cancelled!
+          webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
