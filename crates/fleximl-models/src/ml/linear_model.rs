@@ -1,77 +1,51 @@
-use rand::Rng;
+use ndarray::{Array1, Array2};
 
 pub struct LinearModel {
-    pub slope: f64,
-    pub intercept: f64,
+    pub weights: Array1<f64>,
+    pub bias: f64,
+    pub learning_rate: f64,
+    pub task: Task,
 }
 
-pub trait LinearModelMethods {
-    fn predict(&self, x: &[f64]) -> Vec<f64>;
-    fn train(
-        &mut self,
-        x: &[f64],
-        y: &[f64],
-        learning_rate: f64,
-        epochs: usize,
-    ) -> Result<(), String>;
-    fn mse(&self, x: &[f64], y: &[f64]) -> Result<f64, String>;
-}
-
-impl LinearModelMethods for LinearModel {
-    fn predict(&self, x: &[f64]) -> Vec<f64> {
-        x.iter()
-            .map(|&xi| self.slope * xi + self.intercept)
-            .collect()
-    }
-
-    fn train(
-        &mut self,
-        x: &[f64],
-        y: &[f64],
-        learning_rate: f64,
-        epochs: usize,
-    ) -> Result<(), String> {
-        if x.len() != y.len() {
-            return Err("Input and output vectors must have the same length".to_string());
-        }
-
-        for _ in 0..epochs {
-            for (&xi, &yi) in x.iter().zip(y.iter()) {
-                let prediction = self.slope * xi + self.intercept;
-                let error = prediction - yi;
-
-                self.slope -= learning_rate * error * xi;
-                self.intercept -= learning_rate * error;
-            }
-        }
-        Ok(())
-    }
-
-    fn mse(&self, x: &[f64], y: &[f64]) -> Result<f64, String> {
-        if x.len() != y.len() {
-            return Err("Input and output vectors must have the same length".to_string());
-        }
-
-        let predictions = self.predict(x);
-        Ok(predictions
-            .iter()
-            .zip(y.iter())
-            .map(|(&pred, &actual)| (pred - actual).powi(2))
-            .sum::<f64>()
-            / y.len() as f64)
-    }
+#[derive(Debug, PartialEq)]
+pub enum Task {
+    BinaryClassification,
+    Regression,
 }
 
 impl LinearModel {
-    pub fn new() -> Self {
-        let mut rng = rand::thread_rng();
+    pub fn new(num_features: usize, learning_rate: f64, task: Task) -> Self {
         LinearModel {
-            slope: rng.gen_range(-1.0..1.0),
-            intercept: rng.gen_range(-1.0..1.0),
+            weights: Array1::zeros(num_features),
+            bias: 0.0,
+            learning_rate,
+            task,
         }
     }
 
-    pub fn with_parameters(slope: f64, intercept: f64) -> Self {
-        LinearModel { slope, intercept }
+    pub fn predict(&self, x: &Array1<f64>) -> f64 {
+        let linear_output = x.dot(&self.weights) + self.bias;
+        match self.task {
+            Task::BinaryClassification => self.sigmoid(linear_output),
+            Task::Regression => linear_output,
+        }
+    }
+
+    pub fn fit(&mut self, x: &Array2<f64>, y: &Array1<f64>, epochs: usize) {
+        for _ in 0..epochs {
+            let predictions = x.dot(&self.weights) + self.bias;
+            let errors = match self.task {
+                Task::BinaryClassification => predictions.map(|p| self.sigmoid(*p)) - y,
+                Task::Regression => predictions - y,
+            };
+
+            let gradient = x.t().dot(&errors) / x.nrows() as f64;
+            self.weights -= &(gradient * self.learning_rate);
+            self.bias -= errors.mean().unwrap_or(0.0) * self.learning_rate;
+        }
+    }
+
+    pub fn sigmoid(&self, x: f64) -> f64 {
+        1.0 / (1.0 + (-x).exp())
     }
 }

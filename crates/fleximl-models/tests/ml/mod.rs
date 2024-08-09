@@ -1,1 +1,1 @@
-mod linear_model_test;
+mod linear_model;
