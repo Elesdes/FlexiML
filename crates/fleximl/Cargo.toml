@@ -1,11 +1,11 @@
 [package]
-name = "fleximl-models"
+name = "fleximl"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
-description = "Machine learning models available for FlexiML framework"
-repository = "https://github.com/Elesdes/FlexiML/tree/main/crates/fleximl-models"
+description.workspace = true
+repository.workspace = true
 
 [lib]
 path = "src/lib.rs"

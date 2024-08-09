@@ -3,7 +3,7 @@
 //!
 //! To run the script:
 //!
-//! cargo xtask publish INPUT_CRATE
+//! cargo -p xtask publish INPUT_CRATE
 
 use std::{collections::HashMap, env, process::Command, str};
 
