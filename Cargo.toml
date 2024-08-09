@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/fleximl-models"]
+members = ["crates/fleximl-models", "xtask"]
 
 [workspace.package]
 name = "fleximl"
@@ -8,8 +8,6 @@ version = "0.1.0"
 edition = "2021"
 license = "MIT"
 description = "A machine learning library implemented in Rust"
-categories = ["science"]
-keywords = ["deep-learning", "machine-learning", "data"]
 repository = "https://github.com/Elesdes/FlexiML"
 
 [workspace.dependencies]

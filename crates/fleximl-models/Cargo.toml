@@ -4,9 +4,7 @@ version.workspace = true
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
-description = "Machine Learning & Deep Learning models available for FlexiML framework"
-categories = ["science"]
-keywords = ["deep-learning", "machine-learning", "data"]
+description = "Machine Learning models available for FlexiML framework"
 repository = "https://github.com/Elesdes/FlexiML/tree/main/crates/fleximl-models"
 
 [lib]

@@ -2,48 +2,54 @@ name: FlexiML_py Notification
 
 on:
   workflow_run:
-    branches:
-        - master
-    workflows: ["Test", "Publish"]
-    types:
-      - completed
+    workflows: [ Test, Publish ]
+    types: [ completed ]
+    branches: [ master ]
 
 jobs:
   notify_ci_status:
     name: Notify CI Status
     runs-on: ubuntu-latest
     steps:
-      - name: Check workflow status
+      - name: Wait for other workflows
+        uses: ahmadnassri/action-workflow-run-wait@v1
+
+      - name: Check workflow statuses
         id: check
         run: |
-          if [ "${{ github.event.workflow_run.conclusion }}" == "success" ]; then
+          TEST_STATUS=$(gh api repos/${{ github.repository }}/actions/workflows/test.yml/runs?branch=master&status=completed&per_page=1 | jq -r '.workflow_runs[0].conclusion')
+          PUBLISH_STATUS=$(gh api repos/${{ github.repository }}/actions/workflows/publish.yml/runs?branch=master&status=completed&per_page=1 | jq -r '.workflow_runs[0].conclusion')
+
+          if [ "$TEST_STATUS" == "success" ] && [ "$PUBLISH_STATUS" == "success" ]; then
             echo "status=success" >> $GITHUB_OUTPUT
-          elif [ "${{ github.event.workflow_run.conclusion }}" == "cancelled" ]; then
+          elif [ "$TEST_STATUS" == "cancelled" ] || [ "$PUBLISH_STATUS" == "cancelled" ]; then
             echo "status=cancelled" >> $GITHUB_OUTPUT
           else
             echo "status=failure" >> $GITHUB_OUTPUT
           fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Test Success
+      - name: All Workflows Success
         uses: rjstone/discord-webhook-notify@v1
         if: steps.check.outputs.status == 'success'
         with:
           severity: info
-          details: All tests succeeded!
+          details: All workflows (Test and Publish) succeeded!
           webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
 
-      - name: Test Failure
+      - name: Workflow Failure
         uses: rjstone/discord-webhook-notify@v1
         if: steps.check.outputs.status == 'failure'
         with:
           severity: error
-          details: One or more tests failed!
+          details: One or more workflows (Test or Publish) failed!
           webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
 
-      - name: Test Cancelled
+      - name: Workflow Cancelled
         uses: rjstone/discord-webhook-notify@v1
         if: steps.check.outputs.status == 'cancelled'
         with:
           severity: warn
-          details: Tests were cancelled!
+          details: One or more workflows (Test or Publish) were cancelled!
           webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
