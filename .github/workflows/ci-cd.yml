@@ -1,0 +1,135 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    outputs:
+      tests_passed: ${{ steps.test_status.outputs.tests_passed }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install cargo-tarpaulin
+        run: cargo install cargo-tarpaulin
+
+      - name: Run Tests
+        id: run_tests
+        run: cargo test --verbose
+        continue-on-error: true
+
+      - name: Set test status
+        id: test_status
+        if: always()
+        run: |
+          if [ "${{ steps.run_tests.outcome }}" == "success" ]; then
+            echo "tests_passed=true" >> $GITHUB_OUTPUT
+          else
+            echo "tests_passed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Run Coverage
+        if: steps.run_tests.outcome == 'success'
+        run: cargo tarpaulin --verbose --workspace --timeout 120 --out Xml
+
+  publish:
+    name: Publish Crates
+    needs: test
+    if: needs.test.outputs.tests_passed == 'true'
+    strategy:
+      matrix:
+        crate:
+          - fleximl-models
+    uses: ./.github/workflows/publish-template.yml
+    with:
+      crate: ${{ matrix.crate }}
+    secrets: inherit
+
+  notify:
+    name: Send Notification
+    needs: [test, publish]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Determine workflow status
+        id: status
+        run: |
+          if [ "${{ needs.test.result }}" == "success" ] && [ "${{ needs.publish.result }}" == "success" ]; then
+            echo "workflow_status=success" >> $GITHUB_OUTPUT
+          elif [ "${{ needs.test.result }}" == "cancelled" ] || [ "${{ needs.publish.result }}" == "cancelled" ]; then
+            echo "workflow_status=cancelled" >> $GITHUB_OUTPUT
+          else
+            echo "workflow_status=failure" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Gather job details
+        id: job_details
+        run: |
+          echo "test_status=${{ needs.test.result }}" >> $GITHUB_OUTPUT
+          echo "publish_status=${{ needs.publish.result }}" >> $GITHUB_OUTPUT
+          echo "workflow_run_url=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" >> $GITHUB_OUTPUT
+
+          PUBLISH_JOBS=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "${{ github.api_url }}/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/jobs" \
+            | jq -r '.jobs[] | select(.name | startswith("publish-crate")) | "\(.name): \(.conclusion)"')
+          echo "publish_jobs<<EOF" >> $GITHUB_OUTPUT
+          echo "$PUBLISH_JOBS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Notification for Success
+        uses: rjstone/discord-webhook-notify@v1
+        if: steps.status.outputs.workflow_status == 'success'
+        with:
+          severity: info
+          details: |
+            CI/CD Pipeline succeeded!
+            Workflow Run: ${{ steps.job_details.outputs.workflow_run_url }}
+
+            Test Job: ${{ steps.job_details.outputs.test_status }}
+            Publish Job: ${{ steps.job_details.outputs.publish_status }}
+
+            Publish Details:
+            ${{ steps.job_details.outputs.publish_jobs }}
+          webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
+
+      - name: Notification for Failure
+        uses: rjstone/discord-webhook-notify@v1
+        if: steps.status.outputs.workflow_status == 'failure'
+        with:
+          severity: error
+          details: |
+            CI/CD Pipeline failed!
+            Workflow Run: ${{ steps.job_details.outputs.workflow_run_url }}
+
+            Test Job: ${{ steps.job_details.outputs.test_status }}
+            Publish Job: ${{ steps.job_details.outputs.publish_status }}
+
+            Publish Details:
+            ${{ steps.job_details.outputs.publish_jobs }}
+
+            Please check the workflow logs for more details on the failure.
+          webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
+
+      - name: Notification for Cancellation
+        uses: rjstone/discord-webhook-notify@v1
+        if: steps.status.outputs.workflow_status == 'cancelled'
+        with:
+          severity: warn
+          details: |
+            CI/CD Pipeline was cancelled.
+            Workflow Run: ${{ steps.job_details.outputs.workflow_run_url }}
+
+            Test Job: ${{ steps.job_details.outputs.test_status }}
+            Publish Job: ${{ steps.job_details.outputs.publish_status }}
+
+            Publish Details:
+            ${{ steps.job_details.outputs.publish_jobs }}
+          webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
