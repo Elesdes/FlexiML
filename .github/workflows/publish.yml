@@ -7,13 +7,17 @@ on:
     branches: [master]
 
 jobs:
-  # publish-fleximl:
-  #   uses: Elesdes/FlexiML/.github/workflows/publish-template.yml@master
-  #   with:
-  #     crate: fleximl
-  #   secrets: inherit
-  publish-fleximl-models:
-    uses: Elesdes/FlexiML/.github/workflows/publish-template.yml@master
+  test:
+    uses: ./.github/workflows/test.yml
+
+  publish:
+    needs: test
+    if: needs.test.outputs.tests_passed == 'true'
+    strategy:
+      matrix:
+        crate:
+          - fleximl-models
+    uses: ./.github/workflows/publish-template.yml
     with:
-      crate: fleximl-models
+      crate: ${{ matrix.crate }}
     secrets: inherit

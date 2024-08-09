@@ -1,10 +1,10 @@
-name: FlexiML_py Notification
+name: FlexiML Notification
 
 on:
   workflow_run:
-    workflows: [ Test, Publish ]
-    types: [ completed ]
-    branches: [ master ]
+    workflows: [Test, Publish]
+    types: [completed]
+    branches: [master]
 
 jobs:
   notify_ci_status:
@@ -17,8 +17,15 @@ jobs:
       - name: Check workflow statuses
         id: check
         run: |
-          TEST_STATUS=$(gh api repos/${{ github.repository }}/actions/workflows/test.yml/runs?branch=master&status=completed&per_page=1 | jq -r '.workflow_runs[0].conclusion')
-          PUBLISH_STATUS=$(gh api repos/${{ github.repository }}/actions/workflows/publish.yml/runs?branch=master&status=completed&per_page=1 | jq -r '.workflow_runs[0].conclusion')
+          TEST_RUN=$(gh api repos/${{ github.repository }}/actions/workflows/test.yml/runs?branch=master&status=completed&per_page=1)
+          PUBLISH_RUN=$(gh api repos/${{ github.repository }}/actions/workflows/publish.yml/runs?branch=master&status=completed&per_page=1)
+
+          TEST_STATUS=$(echo "$TEST_RUN" | jq -r '.workflow_runs[0].conclusion')
+          PUBLISH_STATUS=$(echo "$PUBLISH_RUN" | jq -r '.workflow_runs[0].conclusion')
+          TEST_URL=$(echo "$TEST_RUN" | jq -r '.workflow_runs[0].html_url')
+          PUBLISH_URL=$(echo "$PUBLISH_RUN" | jq -r '.workflow_runs[0].html_url')
+
+          PUBLISH_JOBS=$(echo "$PUBLISH_RUN" | jq -r '.workflow_runs[0].jobs_url' | xargs curl -s | jq -r '.jobs[] | "\(.name): \(.conclusion)"')
 
           if [ "$TEST_STATUS" == "success" ] && [ "$PUBLISH_STATUS" == "success" ]; then
             echo "status=success" >> $GITHUB_OUTPUT
@@ -27,6 +34,14 @@ jobs:
           else
             echo "status=failure" >> $GITHUB_OUTPUT
           fi
+
+          echo "test_status=$TEST_STATUS" >> $GITHUB_OUTPUT
+          echo "publish_status=$PUBLISH_STATUS" >> $GITHUB_OUTPUT
+          echo "test_url=$TEST_URL" >> $GITHUB_OUTPUT
+          echo "publish_url=$PUBLISH_URL" >> $GITHUB_OUTPUT
+          echo "publish_jobs<<EOF" >> $GITHUB_OUTPUT
+          echo "$PUBLISH_JOBS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -35,7 +50,13 @@ jobs:
         if: steps.check.outputs.status == 'success'
         with:
           severity: info
-          details: All workflows (Test and Publish) succeeded!
+          details: |
+            All workflows succeeded!
+            Test: ${{ steps.check.outputs.test_url }}
+            Publish: ${{ steps.check.outputs.publish_url }}
+
+            Publish Jobs:
+            ${{ steps.check.outputs.publish_jobs }}
           webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
 
       - name: Workflow Failure
@@ -43,7 +64,16 @@ jobs:
         if: steps.check.outputs.status == 'failure'
         with:
           severity: error
-          details: One or more workflows (Test or Publish) failed!
+          details: |
+            One or more workflows failed!
+            Test (${{ steps.check.outputs.test_status }}): ${{ steps.check.outputs.test_url }}
+            Publish (${{ steps.check.outputs.publish_status }}): ${{ steps.check.outputs.publish_url }}
+
+            Publish Jobs:
+            ${{ steps.check.outputs.publish_jobs }}
+
+            ${{ steps.check.outputs.test_status == 'failure' && '**Test Failure Details:**' || '' }}
+            ${{ steps.check.outputs.test_status == 'failure' && join(fromJson(steps.check.outputs.test_results), '\n') || '' }}
           webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
 
       - name: Workflow Cancelled
@@ -51,5 +81,11 @@ jobs:
         if: steps.check.outputs.status == 'cancelled'
         with:
           severity: warn
-          details: One or more workflows (Test or Publish) were cancelled!
+          details: |
+            One or more workflows were cancelled!
+            Test (${{ steps.check.outputs.test_status }}): ${{ steps.check.outputs.test_url }}
+            Publish (${{ steps.check.outputs.publish_status }}): ${{ steps.check.outputs.publish_url }}
+
+            Publish Jobs:
+            ${{ steps.check.outputs.publish_jobs }}
           webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
