@@ -2,13 +2,18 @@ name: Publish
 
 on:
   push:
-    branches: [ master ]
+    branches: [master]
   pull_request:
-    branches: [ master ]
+    branches: [master]
 
 jobs:
-    publish-fleximl-models:
-        uses: Elesdes/FlexiML/.github/workflows/publish-template.yml@master
-        with:
-            crate: fleximl-models
-        secrets: inherit
+  # publish-fleximl:
+  #   uses: Elesdes/FlexiML/.github/workflows/publish-template.yml@master
+  #   with:
+  #     crate: fleximl
+  #   secrets: inherit
+  publish-fleximl-models:
+    uses: Elesdes/FlexiML/.github/workflows/publish-template.yml@master
+    with:
+      crate: fleximl-models
+    secrets: inherit

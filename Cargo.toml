@@ -1,10 +1,12 @@
 [workspace]
-members = ["crates/fleximl-models", "xtask"]
+resolver = "2"
+
+members = ["crates/*", "xtask"]
 
 [workspace.package]
 name = "fleximl"
 authors = ["Elesdes"]
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 license = "MIT"
 description = "A machine learning library implemented in Rust"
