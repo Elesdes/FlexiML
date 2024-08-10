@@ -6,7 +6,7 @@ members = ["crates/*", "xtask"]
 [workspace.package]
 name = "fleximl"
 authors = ["Elesdes"]
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 license = "MIT"
 description = "A machine learning library implemented in Rust"

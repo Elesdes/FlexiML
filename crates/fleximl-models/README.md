@@ -10,9 +10,9 @@ Below, a checklist of the modules that are currently available or planned for th
 
 - `ml`: Contains machine learning model implementations
   - [x] `LinearModel`
-  - [ ] `MLP`
+  - [x] `MLP`
+  - [x] `RBF K-Means`
   - [ ] `SVM`
-  - [ ] `KMeans`
   - [ ] `RandomForest`
   - [ ] `XGBoost`
   - [ ] `KAN`
